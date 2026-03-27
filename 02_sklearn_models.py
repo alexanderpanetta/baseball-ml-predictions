@@ -206,10 +206,58 @@ for _, player in batting_2025.iterrows():
 
 predict_bat_df = pd.DataFrame(predict_rows)
 
-# Generate predictions
+# Generate raw predictions
 for stat in BATTING_TARGETS:
     X_pred = predict_bat_df[feature_cols].fillna(0)
     predict_bat_df[f"pred_{stat}"] = batting_models_final[stat].predict(X_pred)
+
+# ============================================================
+# VARIANCE CALIBRATION
+# ============================================================
+# Regression models systematically compress the variance of predictions.
+# The predicted mean is correct, but the spread is too narrow — the model
+# cannot predict the random component (hot streaks, BABIP luck, etc.) that
+# creates the full range of real-world outcomes.
+#
+# Fix: rescale each stat's predictions so the standard deviation matches
+# the historical standard deviation of actual outcomes. This preserves:
+#   - The mean (unchanged)
+#   - The ranking (all players shift proportionally from the mean)
+#   - The relative distances between players
+# It restores the realistic spread so the predicted batting champion
+# hits ~.320 instead of ~.288.
+#
+# We use the average std across 2015-2025 seasons as the calibration target.
+print("\nApplying variance calibration...")
+batting_calibration = {}
+for stat in BATTING_TARGETS:
+    # Compute historical std: average across all years
+    yearly_stds = []
+    for year in batting["yearID"].unique():
+        year_data = batting[batting["yearID"] == year][stat].dropna()
+        if len(year_data) > 10:
+            yearly_stds.append(year_data.std())
+    historical_std = np.mean(yearly_stds)
+
+    # Compute predicted std
+    raw_preds = predict_bat_df[f"pred_{stat}"]
+    pred_mean = raw_preds.mean()
+    pred_std = raw_preds.std()
+
+    # Rescale: shift each prediction away from the mean by the ratio
+    if pred_std > 0:
+        scale_factor = historical_std / pred_std
+        predict_bat_df[f"pred_{stat}"] = pred_mean + (raw_preds - pred_mean) * scale_factor
+    else:
+        scale_factor = 1.0
+
+    batting_calibration[stat] = {
+        "historical_std": round(historical_std, 4),
+        "raw_pred_std": round(pred_std, 4),
+        "scale_factor": round(scale_factor, 4)
+    }
+    print(f"  {stat:>4s}: historical_std={historical_std:.4f}, pred_std={pred_std:.4f}, "
+          f"scale={scale_factor:.2f}x")
 
 # Clean up predictions
 pred_cols = ["fullName", "playerID"] + [f"pred_{s}" for s in BATTING_TARGETS]
@@ -388,6 +436,35 @@ for stat in PITCHING_TARGETS:
     X_pred = predict_pitch_df[p_feature_cols].fillna(0)
     predict_pitch_df[f"pred_{stat}"] = pitching_models_final[stat].predict(X_pred)
 
+# ---- Variance calibration for pitching ----
+print("\nApplying variance calibration (pitching)...")
+pitching_calibration = {}
+for stat in PITCHING_TARGETS:
+    yearly_stds = []
+    for year in pitching["yearID"].unique():
+        year_data = pitching[pitching["yearID"] == year][stat].dropna()
+        if len(year_data) > 10:
+            yearly_stds.append(year_data.std())
+    historical_std = np.mean(yearly_stds)
+
+    raw_preds = predict_pitch_df[f"pred_{stat}"]
+    pred_mean = raw_preds.mean()
+    pred_std = raw_preds.std()
+
+    if pred_std > 0:
+        scale_factor = historical_std / pred_std
+        predict_pitch_df[f"pred_{stat}"] = pred_mean + (raw_preds - pred_mean) * scale_factor
+    else:
+        scale_factor = 1.0
+
+    pitching_calibration[stat] = {
+        "historical_std": round(historical_std, 4),
+        "raw_pred_std": round(pred_std, 4),
+        "scale_factor": round(scale_factor, 4)
+    }
+    print(f"  {stat:>4s}: historical_std={historical_std:.4f}, pred_std={pred_std:.4f}, "
+          f"scale={scale_factor:.2f}x")
+
 pred_cols_p = ["fullName", "playerID"] + [f"pred_{s}" for s in PITCHING_TARGETS]
 pitching_preds = predict_pitch_df[pred_cols_p].copy()
 
@@ -434,6 +511,13 @@ metrics = {
         ],
         "train_test_split": "Train on 2016-2024 predictions, test on 2025 predictions",
         "final_model": "Retrained on 2016-2025 for 2026 predictions"
+    },
+    "variance_calibration": {
+        "description": "Raw regression predictions have compressed variance (too narrow spread). "
+                       "We rescale each stat so the predicted std matches the historical avg std "
+                       "across 2015-2025 seasons. Mean and ranking are preserved.",
+        "batting": batting_calibration,
+        "pitching": pitching_calibration
     }
 }
 

@@ -122,5 +122,107 @@
     ],
     "train_test_split": "Train on 2016-2024 predictions, test on 2025 predictions",
     "final_model": "Retrained on 2016-2025 for 2026 predictions"
+  },
+  "variance_calibration": {
+    "description": "Raw regression predictions have compressed variance (too narrow spread). We rescale each stat so the predicted std matches the historical avg std across 2015-2025 seasons. Mean and ranking are preserved.",
+    "batting": {
+      "AVG": {
+        "historical_std": 0.0316,
+        "raw_pred_std": 0.0154,
+        "scale_factor": 2.0517
+      },
+      "R": {
+        "historical_std": 22.7814,
+        "raw_pred_std": 15.3236,
+        "scale_factor": 1.4867
+      },
+      "H": {
+        "historical_std": 37.6012,
+        "raw_pred_std": 23.2778,
+        "scale_factor": 1.6153
+      },
+      "HR": {
+        "historical_std": 9.2682,
+        "raw_pred_std": 6.4652,
+        "scale_factor": 1.4336
+      },
+      "RBI": {
+        "historical_std": 23.5038,
+        "raw_pred_std": 15.2476,
+        "scale_factor": 1.5415
+      },
+      "2B": {
+        "historical_std": 8.7265,
+        "raw_pred_std": 4.8427,
+        "scale_factor": 1.802
+      },
+      "SB": {
+        "historical_std": 8.0751,
+        "raw_pred_std": 7.4916,
+        "scale_factor": 1.0779
+      },
+      "BB": {
+        "historical_std": 19.5801,
+        "raw_pred_std": 13.5667,
+        "scale_factor": 1.4432
+      },
+      "OBP": {
+        "historical_std": 0.0354,
+        "raw_pred_std": 0.0193,
+        "scale_factor": 1.8359
+      },
+      "SLG": {
+        "historical_std": 0.0703,
+        "raw_pred_std": 0.0377,
+        "scale_factor": 1.8655
+      }
+    },
+    "pitching": {
+      "ERA": {
+        "historical_std": 1.1793,
+        "raw_pred_std": 0.54,
+        "scale_factor": 2.1838
+      },
+      "W": {
+        "historical_std": 3.7629,
+        "raw_pred_std": 2.2809,
+        "scale_factor": 1.6497
+      },
+      "L": {
+        "historical_std": 3.3027,
+        "raw_pred_std": 1.9635,
+        "scale_factor": 1.6821
+      },
+      "SO": {
+        "historical_std": 45.7231,
+        "raw_pred_std": 32.5538,
+        "scale_factor": 1.4045
+      },
+      "WHIP": {
+        "historical_std": 0.2006,
+        "raw_pred_std": 0.0919,
+        "scale_factor": 2.182
+      },
+      "IP": {
+        "historical_std": 43.916,
+        "raw_pred_std": 32.7398,
+        "scale_factor": 1.3414
+      },
+      "SV": {
+        "historical_std": 7.149,
+        "raw_pred_std": 5.5232,
+        "scale_factor": 1.2944
+      },
+      "HR": {
+        "historical_std": 7.3113,
+        "raw_pred_std": 5.4719,
+        "scale_factor": 1.3362
+      },
+      "BB": {
+        "historical_std": 14.902,
+        "raw_pred_std": 10.3922,
+        "scale_factor": 1.434
+      }
+    }
   }
 }

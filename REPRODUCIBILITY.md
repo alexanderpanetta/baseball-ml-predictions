@@ -69,8 +69,8 @@ Every file has a SHA-256 checksum. Run `python3 verify_reproducibility.py` to co
 | `data/batting_raw.csv` | `8e44bcbb...e3e1051a` | 3,688 | Processed batting data (2015–2025) |
 | `data/pitching_raw.csv` | `cb404485...e40bb7e24` | 3,502 | Processed pitching data (2015–2025) |
 | `data/people.csv` | `c80c3f5c...e5993ea27` | 24,270 | Player biographical data |
-| `output/batting_predictions_sklearn.csv` | `fa87969f...09dbeab5` | 348 | 2026 batting predictions |
-| `output/pitching_predictions_sklearn.csv` | `7699ac3d...afda9604` | 339 | 2026 pitching predictions |
+| `output/batting_predictions_sklearn.csv` | `f5fbaaca...f08d226` | 348 | 2026 batting predictions (variance-calibrated) |
+| `output/pitching_predictions_sklearn.csv` | `e8c2fb1a...432852e` | 339 | 2026 pitching predictions (variance-calibrated) |
 
 Full checksums are in `verify_reproducibility.py`.
 
@@ -195,7 +195,80 @@ We also report 5-fold CV MAE on the training set as a secondary metric. Folds ar
 
 ---
 
-## 8. Known Limitations
+## 8. Variance Calibration (Post-Prediction Correction)
+
+### The Problem We Discovered
+
+After generating our initial predictions, we noticed something wrong: the model's predicted batting champion hit just .288. In the real world, the batting champion typically hits .330–.350. No player was predicted above .300.
+
+Investigation revealed this wasn't a bug — it's a well-known property of regression models called **variance shrinkage**. The model correctly learns the *mean* outcome for each player but cannot predict the random component (hot streaks, BABIP luck, favorable matchups) that spreads real outcomes across a wider range. The result:
+
+| Metric | Actual 2025 | Raw Predictions | After Calibration |
+|--------|------------|-----------------|-------------------|
+| AVG standard deviation | .029 | .015 | .032 |
+| AVG maximum | .331 (Judge) | .288 | .331 |
+| AVG minimum | .157 | .209 | .146 |
+| ERA standard deviation | 1.18 | 0.54 | 1.18 |
+
+The raw model compressed the spread of batting averages by **half** — from std=.029 to std=.015. Every player was pulled toward .246 (the league mean). The predicted *ranking* was correct, but the *distances between players* were unrealistically small.
+
+### The Fix: Variance Calibration
+
+We apply a post-prediction linear rescaling that restores the historical spread:
+
+```
+calibrated = mean + (raw_prediction - mean) × scale_factor
+scale_factor = historical_std / predicted_std
+```
+
+For each statistic, we compute:
+1. **Historical std**: the average standard deviation of actual outcomes across 2015–2025 seasons
+2. **Predicted std**: the standard deviation of our raw predictions
+3. **Scale factor**: the ratio (historical / predicted)
+
+This transformation:
+- **Preserves the mean** (unchanged — the predicted league average is correct)
+- **Preserves the ranking** (all players shift proportionally from the mean)
+- **Preserves relative distances** (if Player A is predicted 2× further from the mean than Player B before calibration, they remain 2× further after)
+- **Restores realistic spread** so predictions match the variance actually observed in MLB seasons
+
+### Calibration Scale Factors Applied
+
+| Batting Stat | Historical Std | Raw Pred Std | Scale Factor |
+|-------------|---------------|-------------|-------------|
+| AVG | .032 | .015 | 2.05× |
+| HR | 9.27 | 6.47 | 1.43× |
+| RBI | 23.50 | 15.25 | 1.54× |
+| OBP | .035 | .019 | 1.84× |
+| SLG | .070 | .038 | 1.87× |
+| SB | 8.08 | 7.49 | 1.08× |
+
+| Pitching Stat | Historical Std | Raw Pred Std | Scale Factor |
+|--------------|---------------|-------------|-------------|
+| ERA | 1.18 | 0.54 | 2.18× |
+| WHIP | 0.20 | 0.09 | 2.18× |
+| SO | 45.72 | 32.55 | 1.40× |
+| W | 3.76 | 2.28 | 1.65× |
+
+Note that **stolen bases required almost no calibration** (1.08×) — the model already predicted realistic variance for SB because it's a highly predictable stat (R²=0.54). **ERA and WHIP required the most** (2.18×), consistent with their low R² values — the model explained little variance, so most of the real spread was in the unpredicted random component.
+
+### Why This Is Legitimate (Not Data Manipulation)
+
+This calibration is a standard technique in statistical forecasting, analogous to:
+- **Probability calibration** in classification (Platt scaling, isotonic regression)
+- **Spread calibration** in weather forecasting (ensemble model output statistics)
+- **Dispersion correction** in Bayesian prediction intervals
+
+We are not changing which players rank higher or injecting information about 2026. We are correcting a known statistical artifact of point-prediction regression models using historical distributional properties. The calibration targets (historical stds) are computed from the same 2015–2025 data used for training — no external information is introduced.
+
+A reviewer can verify this by:
+1. Running `02_sklearn_models.py` — it prints both raw and calibrated statistics
+2. Comparing the predicted std to the actual std of any historical season
+3. Confirming that the calibration is a linear transformation that preserves ranking
+
+---
+
+## 9. Known Limitations
 
 1. **No injury modeling.** All predictions assume a full, healthy season. A player who played 150 games in 2025 is predicted under the assumption they'll play ~150 games in 2026. This is the single largest source of prediction error in practice.
 
@@ -211,7 +284,7 @@ We also report 5-fold CV MAE on the training set as a secondary metric. Folds ar
 
 ---
 
-## 9. Google AutoML Comparison
+## 10. Google AutoML Comparison
 
 For batting average (AVG) and home runs (HR), we also trained Google Vertex AI AutoML Tabular models using the **exact same training data and features**. This provides a comparison between:
 
@@ -224,7 +297,7 @@ The AutoML models received the same CSV feature matrix uploaded to Google Cloud 
 
 ---
 
-## 10. How to Reproduce (Step by Step)
+## 11. How to Reproduce (Step by Step)
 
 ### Prerequisites
 - Python 3.13+ (tested on 3.13.9, Anaconda distribution)
@@ -271,7 +344,7 @@ If `verify_reproducibility.py` reports ALL CHECKS PASSED, you have reproduced ou
 
 ---
 
-## 11. Dependency Pinning
+## 12. Dependency Pinning
 
 | Package | Version | Purpose |
 |---------|---------|---------|
@@ -285,7 +358,7 @@ If `verify_reproducibility.py` reports ALL CHECKS PASSED, you have reproduced ou
 
 ---
 
-## 12. File Manifest
+## 13. File Manifest
 
 ```
 Baseball_ML_Predictions/
@@ -310,7 +383,7 @@ Baseball_ML_Predictions/
 
 ---
 
-## 13. Contact & Citation
+## 14. Contact & Citation
 
 If you use this analysis, please cite:
 

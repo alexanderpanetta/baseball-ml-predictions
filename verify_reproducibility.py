@@ -14,8 +14,8 @@ EXPECTED = {
     "data/batting_raw.csv": "8e44bcbbbff7e9cfb7f7ad956ce2aaabe46812b8e927d6773822ba33e3e1051a",
     "data/pitching_raw.csv": "cb4044856ad14701792520cd89783b8bfa82d63da29ae958eb64497e40bb7e24",
     "data/people.csv": "c80c3f5c009b5be16544d5cfcbc3bac013cbc30ca08f822c27c5b87e5993ea27",
-    "output/batting_predictions_sklearn.csv": "fa87969f070cb3d694c15bab77afef18e5067b430b2e5198078b595209dbeab5",
-    "output/pitching_predictions_sklearn.csv": "7699ac3df50888cb50d20fb39a7bbae13354f986f8ac418dd36cade7afda9604",
+    "output/batting_predictions_sklearn.csv": "f5fbaaca7f9a61a699d4b6f1cf3d9a15574be96c5daa92510932eba55f08d226",
+    "output/pitching_predictions_sklearn.csv": "e8c2fb1a97ccaaf2d466bf6762f8281f681ba5324fe8dfd65f29fb3ca432852e",
 }
 
 BASE = os.path.dirname(os.path.abspath(__file__))

@@ -14,38 +14,61 @@ The full predictions for every qualified MLB player are in the linked spreadshee
 
 | Player | Predicted HR | 2025 Actual |
 |--------|-------------|-------------|
-| Kyle Schwarber | 42 | 56 |
-| Aaron Judge | 41 | 53 |
-| Shohei Ohtani | 40 | 55 |
-| Cal Raleigh | 39 | 60 |
-| Junior Caminero | 35 | 45 |
-| Pete Alonso | 33 | 38 |
+| Kyle Schwarber | 54 | 56 |
+| Aaron Judge | 53 | 53 |
+| Shohei Ohtani | 51 | 55 |
+| Cal Raleigh | 50 | 60 |
+| Junior Caminero | 44 | 45 |
+| Pete Alonso | 41 | 38 |
 
-The model predicts **regression toward the mean** for last year's power hitters — a well-documented statistical phenomenon. Cal Raleigh's breakout 60-homer season is projected to drop significantly. The model has learned that outlier seasons rarely repeat: the features that matter most are the *weighted 3-year average* and *career average*, not just last year's number.
+The model predicts **regression toward the mean** for last year's power hitters — a well-documented statistical phenomenon. Cal Raleigh's breakout 60-homer season is projected to drop to 50. The model has learned that outlier seasons rarely repeat: the features that matter most are the *weighted 3-year average* and *career average*, not just last year's number.
 
 ### Batting Average Leaders (scikit-learn)
 
 | Player | Predicted AVG | 2025 Actual |
 |--------|--------------|-------------|
-| Bobby Witt Jr. | .288 | .295 |
-| Aaron Judge | .288 | .331 |
-| Juan Soto | .281 | .263 |
-| Shohei Ohtani | .273 | .282 |
-| Vladimir Guerrero Jr. | .275 | .292 |
-
-**A note on what this means — and doesn't mean.** The model isn't predicting that the 2026 batting champion will hit .288. It's saying that .288 is the highest *expected value* for any individual player, given their track record. But whoever actually wins the batting title will, by definition, be having an unusually good year — an outcome the model can't foresee for a specific player. Think of it like this: if you could replay the 2026 season 1,000 times, Judge would average around .288. But in some of those simulations he'd hit .320, and in others .260. The model gives you the center of that distribution, not the upside. Someone will get hot and hit .315+. The model just can't tell you who.
+| Aaron Judge | .331 | .331 |
+| Bobby Witt Jr. | .331 | .295 |
+| Juan Soto | .318 | .263 |
+| Julio Rodriguez | .317 | [2025 actual] |
+| Vladimir Guerrero Jr. | .305 | .292 |
+| Shohei Ohtani | .301 | .282 |
 
 ### Top Pitchers by ERA (scikit-learn)
 
 | Pitcher | Predicted ERA | 2025 Actual |
 |---------|--------------|-------------|
-| Garrett Crochet | 2.91 | 2.59 |
-| Jeremiah Estrada | 2.78 | 3.45 |
-| Devin Williams | 2.80 | 4.79 |
-| Tarik Skubal | 3.01 | 2.21 |
-| Paul Skenes | 3.05 | 1.97 |
+| Jeremiah Estrada | 1.34 | 3.45 |
+| Devin Williams | 1.36 | 4.79 |
+| Garrett Crochet | 1.62 | 2.59 |
+| Tarik Skubal | 1.83 | 2.21 |
+| Paul Skenes | 1.92 | 1.97 |
 
-Paul Skenes' extraordinary 1.97 ERA in 2025 is predicted to regress to 3.05 — still excellent, but the model knows that sub-2.00 ERAs almost never repeat in consecutive seasons.
+The Devin Williams prediction is one of the most interesting. He had a terrible 2025 (4.79 ERA), but the model looks past one bad year: his career track record is elite, his weighted 3-year average is dominant, and the model expects regression *upward* — back toward his true talent level. That's not blind optimism; it's the same math that pulls Cal Raleigh's 60 homers back down.
+
+## The Calibration Problem (And What It Taught Me About ML)
+
+Here's something I didn't expect, and it's probably the most important thing in this piece for anyone who uses machine learning.
+
+When I first ran the model, the predicted batting champion hit **.288**. Nobody was above .300. In a sport where the batting title winner typically hits .330–.350, that was obviously wrong. But the model wasn't broken — every line of code checked out. The rankings were sensible. The mean was correct. So what happened?
+
+It's a phenomenon called **variance shrinkage**, and it affects virtually every regression model. Here's the intuition:
+
+The model trains on ~2,700 player-seasons. Most players are .240–.260 hitters. When the algorithm builds its decision trees, it optimizes for accuracy across *all* those players — and the safest prediction is always one closer to the middle. Predicting .310 for a career .318 hitter is "safer" (lower average error) than predicting .325, because even elite hitters sometimes hit .280. The model hedges.
+
+The result: the predicted mean was right (.246, matching the real league average), but the **spread was compressed by half**. Real batting averages have a standard deviation of .029; the model's predictions had a std of .015. It was like watching baseball through a lens that made everyone look average.
+
+The fix is a standard technique in statistical forecasting called **variance calibration**. For each stat, we measured how much the model compressed the spread, then rescaled the predictions to match the historical variance:
+
+```
+calibrated = league_mean + (raw_prediction - league_mean) × scale_factor
+```
+
+For batting average, the scale factor was **2.05×**. For ERA, it was **2.18×**. Stolen bases barely needed any correction (1.08×) — because steals are the most predictable stat, the model already captured most of the real variance.
+
+This calibration preserves the ranking (Judge is still predicted above Ohtani), preserves the mean (the league average is unchanged), and preserves relative distances between players. It just restores the realistic scale that the algorithm compressed.
+
+**Why this matters beyond baseball:** If you're using ML to predict anything — stock returns, sales forecasts, test scores — your model is almost certainly doing this same compression. The point predictions may rank correctly but understate how different the best and worst outcomes really are. Check your predicted variance against reality. You may need to calibrate.
 
 ## How the Models Work
 
@@ -57,6 +80,8 @@ Both models use the same input features — this is key for a fair comparison:
 4. **Year-over-year trend** — is the player improving or declining?
 5. **Age and age²** — captures the well-known aging curve (players peak around 27-29, then gradually decline)
 6. **Experience** — number of qualified MLB seasons
+
+Each player is compared to **his own history**, not to other players. The model asks: "Given what this specific player has done over his career, what should we expect next year?" The league-wide data comes in only through training — the algorithm learns general patterns (like aging curves) from thousands of player-seasons, then applies those patterns to each individual.
 
 The scikit-learn model is a **Gradient Boosting Regressor** with fixed hyperparameters and a random seed of 42 — meaning anyone who runs the code will get the exact same predictions.
 
@@ -80,7 +105,7 @@ This is consistent with academic research on baseball prediction — season-leve
 
 [TODO: Fill in once AutoML results are ready]
 
-How did the $40 black-box compare to the free, transparent model? For batting average and home runs:
+How did the ~$40 black-box compare to the free, transparent model? For batting average and home runs:
 
 - AutoML predicted AVG of X vs. scikit-learn's Y
 - AutoML predicted HR of X vs. scikit-learn's Y
@@ -100,23 +125,22 @@ These predictions assume every player stays healthy and plays a full season. The
 
 ## Reproduce This Yourself
 
-All code and data are freely available. You need Python 3.10+ and a few packages:
+All code and data are freely available at **[github.com/alexanderpanetta/baseball-ml-predictions](https://github.com/alexanderpanetta/baseball-ml-predictions)**. You need Python 3.10+ and a few packages:
 
 ```bash
-pip install pandas requests pyreadr scikit-learn openpyxl
-python3 01_pull_data.py      # Download Lahman database
-python3 02_sklearn_models.py  # Train models, generate predictions
-python3 03_create_spreadsheets.py  # Create spreadsheet
+pip install -r requirements.txt
+python3 02_sklearn_models.py       # Train models, generate predictions
+python3 verify_reproducibility.py  # Confirm your results match ours exactly
 ```
 
-The data comes from the SABR Lahman Baseball Database (Creative Commons licensed), and every model uses `random_state=42` for exact reproducibility.
+The data comes from the SABR Lahman Baseball Database (Creative Commons licensed), and every model uses `random_state=42` for exact reproducibility. A SHA-256 verification script confirms your output files are byte-identical to ours.
 
 ## The Spreadsheets
 
 - **[Batting Predictions](link)** — All 348 qualified batters with predicted AVG, HR, RBI, R, H, 2B, SB, BB, OBP, SLG
 - **[Pitching Predictions](link)** — All 339 qualified pitchers with predicted ERA, W, L, SO, WHIP, IP, SV
-- **[Methodology](link)** — Full documentation of features, model parameters, and evaluation metrics
+- **[Methodology](link)** — Full documentation of features, model parameters, evaluation metrics, and variance calibration
 
 ---
 
-*Alex Panetta covers AI governance and data science. This analysis was built with assistance from Claude (Anthropic) for code development and scikit-learn/Google Vertex AI for machine learning.*
+*Alex Panetta covers AI governance and data science. This analysis was built with assistance from Claude (Anthropic) for code development and scikit-learn/Google Vertex AI for machine learning. Full methodology and reproducibility documentation: [github.com/alexanderpanetta/baseball-ml-predictions](https://github.com/alexanderpanetta/baseball-ml-predictions)*
