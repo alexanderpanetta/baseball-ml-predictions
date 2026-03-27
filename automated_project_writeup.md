@@ -1,10 +1,11 @@
 # Play Ball! What Machine Learning Predicts This Baseball Season
 
 *Opening Day 2026*
+*Author: Automated by Claude Code (not written by Alex Panetta)*
 
-Every spring, the baseball world buzzes with predictions. Who'll lead the league in homers? Which pitchers will dominate? This year, I asked two machine learning systems to make their calls — and the results reveal as much about AI as they do about baseball.
+Every spring, the baseball world buzzes with predictions. Who'll lead the league in homers? Which pitchers will dominate? This year, Alex asked two machine learning systems to make their calls — and the results reveal as much about AI as they do about baseball.
 
-I trained two independent ML systems on a decade of player statistics from the SABR Lahman Database (2015–2025) and asked each to predict the 2026 season. One uses scikit-learn's Gradient Boosting algorithm — a well-understood, transparent model that any data scientist can reproduce on a laptop. The other uses Google's Vertex AI AutoML, a black-box system that automatically tests hundreds of model architectures and picks the best one.
+Alex trained two independent ML systems on a decade of player statistics from the SABR Lahman Database (2015–2025) and asked each to predict the 2026 season. One uses scikit-learn's Gradient Boosting algorithm — a well-understood, transparent model that any data scientist can reproduce on a laptop. The other uses Google's Vertex AI AutoML, a black-box system that automatically tests hundreds of model architectures and picks the best one.
 
 The full predictions for every qualified MLB player are in the linked spreadsheets below. Here are the highlights.
 
