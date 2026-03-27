@@ -85,6 +85,25 @@ Each player is compared to **his own history**, not to other players. The model 
 
 The scikit-learn model is a **Gradient Boosting Regressor** with fixed hyperparameters and a random seed of 42 — meaning anyone who runs the code will get the exact same predictions.
 
+## What the Machine Prioritized
+
+One of the advantages of Gradient Boosting is that it tells you which features drove its decisions. The results are revealing — and they'd make a sabermetrician nod.
+
+**For batting average**, the model's top features were:
+1. **Career batting average** (20%) — who you've been is who you'll be
+2. **Weighted 3-year AVG** (13%) — but recent performance matters more than ancient history
+3. **Strikeouts** (5%) — this was the surprise. The model learned that high-strikeout hitters are riskier bets for batting average, even controlling for their actual AVG. Contact quality matters.
+
+**For home runs**, the 3-year weighted HR average dominated at **33%**. Recent power is the single best predictor of future power — much more than career average (14%). The model is saying: what you did in the last three years matters far more than what you did five years ago.
+
+**For stolen bases**, the model found the most predictable stat in baseball: the 3-year weighted SB average accounted for **50%** of the model's decisions. Speed is the most stable skill. If a player stole 30 bases last year, he's stealing bases next year. Period.
+
+**For ERA**, here's where it gets interesting. The #1 feature wasn't prior ERA — it was **strikeout rate (K/9) at 20%**. The model independently discovered what sabermetricians have argued for decades: ERA is noisy (influenced by defense, luck, and sequencing), but the ability to miss bats is a durable, repeatable skill. If you want to predict a pitcher's future ERA, look at how many batters he strikes out, not his ERA itself.
+
+**For wins**, the top features were **starter/reliever role** (14%) and **strikeout history** (13%). The model learned something obvious in retrospect: you can't win 15 games from the bullpen, and among starters, strikeout pitchers win more.
+
+The full feature importance tables for all stats are in the [methodology documentation](https://github.com/alexanderpanetta/baseball-ml-predictions).
+
 ## How Accurate Are These Predictions?
 
 I held out the entire 2025 season as a test set — the models never saw 2025 data during training. Here's how they performed:

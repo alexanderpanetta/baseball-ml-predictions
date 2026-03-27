@@ -134,6 +134,68 @@ These features represent a **minimal, interpretable, baseball-theoretically-moti
 - The `yearID` column is used only for train/test splitting, never as a model feature.
 - `playerID` and `fullName` are ID columns, excluded from the feature matrix.
 
+### Feature Importance (Model Explainability)
+
+Gradient Boosting provides built-in feature importance scores (based on the total reduction in loss contributed by each feature across all trees). Below are the top features for key statistics, trained on the full 2016–2025 dataset.
+
+#### Batting Average (AVG)
+
+| Rank | Feature | Importance | Interpretation |
+|------|---------|-----------|----------------|
+| 1 | career_AVG | 20.3% | Lifetime batting average — the strongest "true talent" signal |
+| 2 | wavg3_AVG | 13.3% | Recent 3-year weighted AVG — recency adds information beyond career |
+| 3 | prev_SO | 5.3% | Previous season strikeouts — high-K hitters are riskier for AVG |
+| 4 | prev_AVG | 3.2% | Last season's AVG alone (less important than smoothed averages) |
+| 5 | career_H | 3.1% | Career hit total — proxy for durability and opportunity |
+
+#### Home Runs (HR)
+
+| Rank | Feature | Importance | Interpretation |
+|------|---------|-----------|----------------|
+| 1 | wavg3_HR | 32.6% | Recent 3-year weighted HR — dominant predictor of future power |
+| 2 | career_HR | 13.6% | Career HR average — baseline power level |
+| 3 | career_SLG | 3.5% | Career slugging — captures extra-base power beyond HR |
+| 4 | prev_G | 2.7% | Games played — health/opportunity proxy |
+| 5 | age | 2.5% | Aging curve — power declines with age |
+
+#### ERA (Pitching)
+
+| Rank | Feature | Importance | Interpretation |
+|------|---------|-----------|----------------|
+| 1 | prev_K9 | 19.9% | Previous K/9 rate — ability to miss bats is more predictive than ERA itself |
+| 2 | prev_GS_ratio | 6.1% | Starter vs. reliever — different ERA baselines by role |
+| 3 | career_ERA | 4.0% | Career ERA — baseline performance level |
+| 4 | prev_WHIP | 3.2% | Previous WHIP — baserunner rate is a durable skill signal |
+| 5 | career_WHIP | 3.2% | Career WHIP — long-term walk+hit control |
+
+#### Stolen Bases (SB)
+
+| Rank | Feature | Importance | Interpretation |
+|------|---------|-----------|----------------|
+| 1 | wavg3_SB | 49.9% | Recent 3-year weighted SB — speed is the most stable skill in baseball |
+| 2 | career_SB | 9.4% | Career SB average |
+| 3 | prev_SB | 7.8% | Last season's SB alone |
+
+#### Saves (SV)
+
+| Rank | Feature | Importance | Interpretation |
+|------|---------|-----------|----------------|
+| 1 | prev_SV | 39.7% | Previous saves — role assignment is the primary driver |
+| 2 | wavg3_SV | 15.3% | 3-year weighted saves — role stability |
+| 3 | prev_GS_ratio | 3.5% | Confirms: starters don't get saves |
+
+#### Key Findings
+
+1. **Smoothed history beats single-season data.** For almost every stat, the weighted 3-year average or career average is more important than the single previous season. The model learned not to overreact to one year.
+
+2. **K/9 predicts ERA better than ERA predicts ERA.** The model independently rediscovered a core sabermetric insight: strikeout rate is a more durable, skill-based indicator than ERA, which is contaminated by defense and luck.
+
+3. **Speed is the most predictable trait.** The SB model is dominated by a single feature (wavg3_SB at 50%) — no other stat has such a clear single-feature signal.
+
+4. **Age matters more for some stats than others.** Age appears in the HR top-5 (power declines with age) but not in the AVG or SB top-5 — suggesting contact ability and speed have flatter aging curves than raw power.
+
+5. **Role assignment drives counting stats.** For wins and saves, the starter/reliever ratio is a top feature — these stats are primarily about opportunity, not just talent.
+
 ---
 
 ## 6. Train/Test Methodology
