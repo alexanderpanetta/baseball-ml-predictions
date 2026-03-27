@@ -103,15 +103,38 @@ This is consistent with academic research on baseball prediction — season-leve
 
 ## scikit-learn vs. Google AutoML
 
-[TODO: Fill in once AutoML results are ready]
+We trained Google Vertex AI AutoML on the exact same features and training data for two stats: batting average and home runs. AutoML got a 1-hour training budget (~$19 per model) and searched across hundreds of model architectures automatically. Here's how the two systems compared:
 
-How did the ~$40 black-box compare to the free, transparent model? For batting average and home runs:
+### Home Run Predictions — Head to Head
 
-- AutoML predicted AVG of X vs. scikit-learn's Y
-- AutoML predicted HR of X vs. scikit-learn's Y
-- The correlation between the two models was X
+| Player | scikit-learn | Google AutoML | 2025 Actual |
+|--------|-------------|---------------|-------------|
+| Kyle Schwarber | 54 | 50 | 56 |
+| Aaron Judge | 53 | 50 | 53 |
+| Shohei Ohtani | 51 | 46 | 55 |
+| Cal Raleigh | 50 | 42 | 60 |
+| Juan Soto | 38 | 48 | [2025] |
+| Junior Caminero | 44 | 41 | 45 |
 
-[Analysis of where they agreed and diverged]
+### Batting Average Predictions — Head to Head
+
+| Player | scikit-learn | Google AutoML | 2025 Actual |
+|--------|-------------|---------------|-------------|
+| Aaron Judge | .331 | .291 | .331 |
+| Bobby Witt Jr. | .331 | .331 | .295 |
+| Luis Arraez | .318 | .360 | [2025] |
+| Juan Soto | .318 | .276 | .263 |
+| Vladimir Guerrero Jr. | .305 | .312 | .292 |
+
+### What the Comparison Tells Us
+
+The two models **broadly agree on rankings** — the same players appear near the top of both lists. But there are interesting divergences:
+
+- **AutoML is more conservative on HR** — it predicts lower totals for the top power hitters (50 vs. 54 for Schwarber, 42 vs. 50 for Raleigh). It may have found a stronger regression-to-the-mean signal.
+- **AutoML loves Luis Arraez** — predicting .360, the highest AVG prediction from either model. Arraez is a career .300+ contact hitter with almost no power, and AutoML apparently learned that profile very well.
+- **scikit-learn is higher on Judge's AVG** (.331 vs .291) — our model gives more weight to his elite 2025 season, while AutoML seems to discount it more heavily.
+
+The bottom line: a $38 cloud-based black box and a free, transparent laptop model produced **similar predictions from the same data**. The differences are in the margins, not the fundamentals. For a blog post or casual analysis, the scikit-learn model is more than sufficient — and it's the one anyone can reproduce.
 
 ## What the Models Can't See
 

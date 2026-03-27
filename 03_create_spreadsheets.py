@@ -20,20 +20,44 @@ pitching = pd.read_csv(os.path.join(OUTPUT_DIR, "pitching_predictions_sklearn.cs
 with open(os.path.join(OUTPUT_DIR, "model_metrics.json")) as f:
     metrics = json.load(f)
 
+# Load AutoML predictions if available
+automl_path = os.path.join(OUTPUT_DIR, "automl_predictions.csv")
+if os.path.exists(automl_path):
+    automl = pd.read_csv(automl_path)
+    automl = automl.rename(columns={"fullName": "Player"})
+    print(f"Loaded AutoML predictions: {len(automl)} rows, columns: {automl.columns.tolist()}")
+else:
+    automl = None
+    print("No AutoML predictions found — using placeholders.")
+
 # ============================================================
 # SHEET 1: Batting Predictions
 # ============================================================
 bat_display = batting.drop(columns=["playerID"]).copy()
 
-# Add AutoML placeholder columns (side-by-side)
+# Merge AutoML predictions on playerID (not name — there are duplicate names like Max Muncy)
+if automl is not None:
+    automl_merge = automl.rename(columns={"Player": "Player_automl"})
+    bat_display = batting.copy()  # re-start from batting which has playerID
+    bat_display = bat_display.merge(
+        automl_merge[["playerID"] + [c for c in automl_merge.columns if c.startswith("automl_")]],
+        on="playerID", how="left"
+    )
+    bat_display = bat_display.drop(columns=["playerID"])
+
 BATTING_STATS = ["AVG", "R", "H", "HR", "RBI", "2B", "SB", "BB", "OBP", "SLG"]
 
 # Reorder: Player, then for each stat: sklearn, AutoML side by side
 ordered_cols = ["Player"]
 for stat in BATTING_STATS:
     ordered_cols.append(f"sklearn_{stat}")
-    bat_display[f"AutoML_{stat}"] = ""  # placeholder
-    ordered_cols.append(f"AutoML_{stat}")
+    automl_col = f"automl_{stat}"
+    display_col = f"AutoML_{stat}"
+    if automl_col in bat_display.columns:
+        bat_display[display_col] = bat_display[automl_col]
+    else:
+        bat_display[display_col] = ""
+    ordered_cols.append(display_col)
 
 bat_display = bat_display[ordered_cols]
 
