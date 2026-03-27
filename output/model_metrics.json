@@ -1,0 +1,126 @@
+{
+  "batting": {
+    "AVG": {
+      "MAE": 0.0195,
+      "R2": 0.2219,
+      "CV_MAE": 0.0222
+    },
+    "R": {
+      "MAE": 15.4785,
+      "R2": 0.3702,
+      "CV_MAE": 16.9531
+    },
+    "H": {
+      "MAE": 26.8648,
+      "R2": 0.2962,
+      "CV_MAE": 28.7669
+    },
+    "HR": {
+      "MAE": 6.0802,
+      "R2": 0.3308,
+      "CV_MAE": 6.2687
+    },
+    "RBI": {
+      "MAE": 16.3886,
+      "R2": 0.2836,
+      "CV_MAE": 17.4175
+    },
+    "2B": {
+      "MAE": 6.0778,
+      "R2": 0.2634,
+      "CV_MAE": 6.9084
+    },
+    "SB": {
+      "MAE": 4.4376,
+      "R2": 0.5351,
+      "CV_MAE": 3.7833
+    },
+    "BB": {
+      "MAE": 12.5268,
+      "R2": 0.4571,
+      "CV_MAE": 12.5348
+    },
+    "OBP": {
+      "MAE": 0.0225,
+      "R2": 0.3203,
+      "CV_MAE": 0.0244
+    },
+    "SLG": {
+      "MAE": 0.048,
+      "R2": 0.1859,
+      "CV_MAE": 0.0491
+    }
+  },
+  "pitching": {
+    "ERA": {
+      "MAE": 0.8532,
+      "R2": 0.1353,
+      "CV_MAE": 0.8524
+    },
+    "W": {
+      "MAE": 2.531,
+      "R2": 0.2177,
+      "CV_MAE": 2.7093
+    },
+    "L": {
+      "MAE": 2.43,
+      "R2": 0.2664,
+      "CV_MAE": 2.3743
+    },
+    "SO": {
+      "MAE": 26.8684,
+      "R2": 0.4069,
+      "CV_MAE": 29.4184
+    },
+    "WHIP": {
+      "MAE": 0.1347,
+      "R2": 0.1734,
+      "CV_MAE": 0.1444
+    },
+    "IP": {
+      "MAE": 25.2751,
+      "R2": 0.4666,
+      "CV_MAE": 27.6238
+    },
+    "SV": {
+      "MAE": 2.3174,
+      "R2": 0.581,
+      "CV_MAE": 2.8441
+    },
+    "HR": {
+      "MAE": 4.4337,
+      "R2": 0.4929,
+      "CV_MAE": 4.9467
+    },
+    "BB": {
+      "MAE": 9.4713,
+      "R2": 0.3513,
+      "CV_MAE": 10.2462
+    }
+  },
+  "model_params": {
+    "algorithm": "GradientBoostingRegressor",
+    "n_estimators": 200,
+    "max_depth": 4,
+    "learning_rate": 0.05,
+    "min_samples_leaf": 10,
+    "subsample": 0.8,
+    "random_state": 42
+  },
+  "training_data": {
+    "source": "SABR Lahman Database 2025 edition",
+    "batting_seasons": "2015-2025 (200+ PA per season)",
+    "pitching_seasons": "2015-2025 (50+ IP per season)",
+    "feature_engineering": [
+      "Previous season stats (all target stats + PA, G, SO/BFP)",
+      "Weighted 3-year rolling average (weights: 1/6, 2/6, 3/6)",
+      "Career average of each stat",
+      "Year-over-year trend (difference between last two seasons)",
+      "Age and age-squared (quadratic aging curve)",
+      "Number of qualified prior seasons",
+      "GS/G ratio for pitchers (starter vs reliever indicator)"
+    ],
+    "train_test_split": "Train on 2016-2024 predictions, test on 2025 predictions",
+    "final_model": "Retrained on 2016-2025 for 2026 predictions"
+  }
+}

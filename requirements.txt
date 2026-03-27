@@ -1,0 +1,6 @@
+pandas==2.3.3
+numpy==2.3.5
+scikit-learn==1.7.2
+pyreadr==0.5.4
+requests==2.32.5
+openpyxl>=3.1.0
